@@ -3,19 +3,19 @@
 #include <string.h>
 #include <iostream>
 
-HANDLE ekd5_handle = GetCurrentProcess();
+HANDLE ekd5Handle = GetCurrentProcess();
 HANDLE hThread;
 HINSTANCE hInst;
 
-void codeCave(void *destination_address, void *patched_function, int mangled_bytes) {
-    int jmp_length = 5;
-    int patch_length = jmp_length + mangled_bytes;
-    DWORD offset = ((DWORD) patched_function - (DWORD) destination_address) - jmp_length;
-    BYTE *patch = (BYTE *) malloc(sizeof(BYTE) * patch_length);
-    memset(patch, 0x90, patch_length); // fill up with nop
+void codeCave(void *destinationAddress, void *patchedFunction, int mangledBytes) {
+    int jmpLength = 5;
+    int patchLength = jmpLength + mangledBytes;
+    DWORD offset = ((DWORD) patchedFunction - (DWORD) destinationAddress) - jmpLength;
+    BYTE *patch = (BYTE *) malloc(sizeof(BYTE) * patchLength);
+    memset(patch, 0x90, patchLength); // fill up with nop
     patch[0] = 0xe8; // call rel32
-    memcpy(patch + 1, &offset, jmp_length - 1);
-    if (!WriteProcessMemory(ekd5_handle, destination_address, patch, patch_length, 0)) {
+    memcpy(patch + 1, &offset, jmpLength - 1);
+    if (!WriteProcessMemory(ekd5Handle, destinationAddress, patch, patchLength, 0)) {
         MessageBoxA(nullptr, "fail to detour", "fail", MB_OK);
     } else {
         MessageBoxA(nullptr, "succeed to detour", "success", MB_OK);
@@ -42,7 +42,7 @@ void attackInOurTurn() {
         // 0x23 is the first enemy in battle
         BYTE bypass[5] = {0xB8, 0x23, 00, 00, 00}; // mov eax, 0x23
         BYTE recover[5] = {0xE8, 0x2A, 0x78, 0x01, 0x00}; // original code
-        if (!WriteProcessMemory(ekd5_handle, reinterpret_cast<void *>(0x0043DB0E), bypass, 5, nullptr)) {
+        if (!WriteProcessMemory(ekd5Handle, reinterpret_cast<void *>(0x0043DB0E), bypass, 5, nullptr)) {
             MessageBoxA(nullptr, "fail to replace", "failed", MB_OK);
         }
 
@@ -54,7 +54,7 @@ void attackInOurTurn() {
                 }
 
         // recover the bypassed function call, not neccessary here, just for record
-        if (!WriteProcessMemory(ekd5_handle, reinterpret_cast<void *>(0x0043DB0E), recover, 5, nullptr)) {
+        if (!WriteProcessMemory(ekd5Handle, reinterpret_cast<void *>(0x0043DB0E), recover, 5, nullptr)) {
             MessageBoxA(nullptr, "fail to recover", "failed", MB_OK);
         }
     }
@@ -94,8 +94,8 @@ DWORD WINAPI MainThread(LPVOID lpParam) {
     FreeLibraryAndExitThread(hInst, 0);
 }
 
-BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved) {
-    switch (ul_reason_for_call) {
+BOOL APIENTRY DllMain(HMODULE hModule, DWORD ulReasonForCall, LPVOID lpReserved) {
+    switch (ulReasonForCall) {
         case DLL_PROCESS_ATTACH:
             hInst = hModule;
         // MessageBoxA(nullptr, "DLL injected", "injected", MB_OK);
